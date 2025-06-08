@@ -31,7 +31,7 @@ services:
       - "8000"
     environment:
       - PYTHONUNBUFFERED=1
-      - DATABASE_URL=postgresql://postgres:12344321@db:5432/portfolio
+      - DATABASE_URL=postgresql://postgres:12344321@localhost:5432/user_profile_db
     depends_on:
       - db
     networks:
@@ -43,7 +43,7 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=12344321
-      - POSTGRES_DB=portfolio
+      - POSTGRES_DB=user_profile_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
