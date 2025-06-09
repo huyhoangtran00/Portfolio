@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from database import Base, engine
 from routers import auth, user
-
+from fastapi.responses import JSONResponse
 # Import models to ensure they are loaded and registered with Base.metadata
 from models import user as models_user
 from models import project as models_project
@@ -37,3 +37,8 @@ app.include_router(user.router)
 @app.get("/")
 async def read_root():
     return {"message": "Welcome to the User Portfolio Management API!"}
+
+
+@app.get("/api/health")
+async def health_check():
+    return JSONResponse(content={"status": "ok"})
