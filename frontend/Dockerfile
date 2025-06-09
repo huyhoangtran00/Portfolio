@@ -11,8 +11,10 @@ RUN npm install
 # Copy toàn bộ source code
 COPY . .
 
+RUN apk add --no-cache curl
+
 # Expose port React uses
-EXPOSE 3000
+EXPOSE 5173
 
 # Start React app in development mode
 CMD ["npm", "run", "dev"]
