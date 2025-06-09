@@ -12,4 +12,4 @@ export const uploadProfileImage = (file) => {
     },
   });
 };
-export const deleteProfileImage = () => api.delete('/user/profile/image/delete');
+export const deleteProfileImage = () => api.delete('/user/profile/image');
