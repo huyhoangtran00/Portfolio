@@ -1,16 +1,18 @@
-# Use Node.js for building the React app
-FROM node:18-alpine as build
+# Use Node.js official image
+FROM node:18
 
+# Set working directory
 WORKDIR /app
 
-COPY package*.json ./
+# Copy package.json và install dependencies
+COPY package.json package-lock.json ./
 RUN npm install
 
+# Copy toàn bộ source code
 COPY . .
-RUN npm run build
 
-# Use Nginx to serve the built React app
-FROM nginx:alpine
-COPY --from=build /app/dist /usr/share/nginx/html
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+# Expose port React uses
+EXPOSE 3000
+
+# Start React app in development mode
+CMD ["npm", "start"]
