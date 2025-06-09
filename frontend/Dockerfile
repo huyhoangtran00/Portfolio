@@ -15,4 +15,4 @@ COPY . .
 EXPOSE 3000
 
 # Start React app in development mode
-CMD ["npm", "start"]
+CMD ["npm", "run", "dev"]

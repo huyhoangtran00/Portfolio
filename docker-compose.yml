@@ -20,7 +20,7 @@ services:
       dockerfile: Dockerfile
     container_name: react_frontend
     ports:
-      - "3000:3000"  # Expose React dev server
+      - "3000"  # Expose React dev server
     volumes:
       - ./frontend:/app
       - /app/node_modules  # Prevent overwriting node_modules
