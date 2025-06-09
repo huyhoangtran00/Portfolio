@@ -1,47 +1,67 @@
 // src/pages/app/ProjectSettingsPage.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import useUserStore from '../../stores/userStore';
-import { createProject, updateProject, deleteProject, uploadProjectImage, deleteProjectImage } from '../../api/project';
-import { getUserProfile } from '../../api/user'; // Để load lại user profile và projects sau khi update
+import { createProject, updateProject, deleteProject, getAllUserProjects } from '../../api/project';
+
+// Define the hardcoded image URL
+const HARDCODED_IMAGE_URL = "/blue.png"; // **IMPORTANT: Update this path to where your image is served**
 
 function ProjectSettingsPage() {
-  const { userProfile, fetchUserProfile, projects, addOrUpdateProjectState, deleteProjectState, isLoading, error } = useUserStore();
-  const [editingProject, setEditingProject] = useState(null); // null for new, object for edit
+  const { userProfile, fetchUserProfile, projects, setProjects, addOrUpdateProjectState, deleteProjectState, isLoading, error } = useUserStore();
+  const [editingProject, setEditingProject] = useState(null);
   const [projectName, setProjectName] = useState('');
   const [demoUrl, setDemoUrl] = useState('');
   const [repositoryUrl, setRepositoryUrl] = useState('');
   const [description, setDescription] = useState('');
-  const [tempProjectImageUrl, setTempProjectImageUrl] = useState('');
+  // Removed tempProjectImageUrl state as it's no longer needed for uploads
   const [localLoading, setLocalLoading] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [uploadError, setUploadError] = useState('');
+  // Removed uploadingImage, uploadError states as they are no longer needed
   const [formError, setFormError] = useState('');
 
-  useEffect(() => {
-    if (!userProfile && !isLoading && !error) {
-      fetchUserProfile(); // Fetch user profile which includes projects
-    } else if (userProfile && !projects.length && !isLoading && !error) {
-       // Nếu userProfile đã có nhưng projects chưa được load (ví dụ, refresh trang)
-       // Đảm bảo projects được tải từ userProfile.projects hoặc gọi API riêng
-       // Trong ví dụ này, fetchUserProfile sẽ cập nhật cả userProfile và projects
+  // Function to fetch all projects for the current user
+  const fetchAllProjects = useCallback(async () => {
+    if (!userProfile) return;
+    setLocalLoading(true);
+    try {
+      const response = await getAllUserProjects();
+      setProjects(response.data);
+    } catch (err) {
+      console.error('Failed to fetch user projects:', err);
+      // Optionally set an error state for project list fetching
+    } finally {
+      setLocalLoading(false);
     }
-  }, [userProfile, projects.length, isLoading, error, fetchUserProfile]);
+  }, [userProfile, setProjects]);
 
   useEffect(() => {
-    // Khi chọn project để edit, điền dữ liệu vào form
+    // Initial fetch of user profile (which might contain projects)
+    if (!userProfile && !isLoading && !error) {
+      fetchUserProfile();
+    }
+  }, [userProfile, isLoading, error, fetchUserProfile]);
+
+  useEffect(() => {
+    // Fetch all projects when userProfile is loaded or when component mounts if userProfile exists
+    if (userProfile) {
+      fetchAllProjects();
+    }
+  }, [userProfile, fetchAllProjects]);
+
+  useEffect(() => {
+    // When a project is selected for editing, populate the form
     if (editingProject) {
       setProjectName(editingProject.name || '');
       setDemoUrl(editingProject.demo_url || '');
       setRepositoryUrl(editingProject.repository_url || '');
       setDescription(editingProject.description || '');
-      setTempProjectImageUrl(editingProject.image_url || '');
+      // No need to set image URL from editingProject if it's hardcoded
     } else {
-      // Reset form khi tạo project mới
+      // Reset form when creating a new project
       setProjectName('');
       setDemoUrl('');
       setRepositoryUrl('');
       setDescription('');
-      setTempProjectImageUrl('');
+      // No need to clear image URL if it's hardcoded
       setFormError('');
     }
   }, [editingProject]);
@@ -64,6 +84,8 @@ function ProjectSettingsPage() {
       demo_url: demoUrl || null,
       repository_url: repositoryUrl || null,
       description: description || null,
+      // Hardcode the image_url for both create and update
+      image_url: HARDCODED_IMAGE_URL,
     };
 
     try {
@@ -75,7 +97,7 @@ function ProjectSettingsPage() {
         response = await createProject(projectData);
         alert('Project created successfully!');
       }
-      addOrUpdateProjectState(response.data); // Cập nhật state cục bộ
+      addOrUpdateProjectState(response.data); // Update local state
       setEditingProject(null); // Clear form or editing state
     } catch (err) {
       setFormError(err.response?.data?.detail || 'Failed to save project.');
@@ -92,8 +114,11 @@ function ProjectSettingsPage() {
     setLocalLoading(true);
     try {
       await deleteProject(projectId);
-      deleteProjectState(projectId); // Cập nhật state cục bộ
+      deleteProjectState(projectId); // Update local state
       alert('Project deleted successfully!');
+      if (editingProject && editingProject.id === projectId) {
+        setEditingProject(null); // If the deleted project was being edited, clear the form
+      }
     } catch (err) {
       console.error('Failed to delete project:', err);
       alert('Failed to delete project. Please try again.');
@@ -102,58 +127,11 @@ function ProjectSettingsPage() {
     }
   };
 
-  const handleProjectImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (!editingProject) {
-        setUploadError('Please create or select a project first to upload an image.');
-        return;
-    }
+  // Removed handleProjectImageUpload and handleProjectImageDelete functions
 
-    setUploadingImage(true);
-    setUploadError('');
-    try {
-        const response = await uploadProjectImage(editingProject.id, file);
-        const newImageUrl = response.data.image_url;
-        // Cập nhật URL ảnh trong project đang chỉnh sửa
-        setTempProjectImageUrl(newImageUrl);
-        addOrUpdateProjectState({ ...editingProject, image_url: newImageUrl });
-        alert('Project image uploaded successfully!');
-    } catch (err) {
-        setUploadError(err.response?.data?.detail || 'Failed to upload image.');
-        console.error('Project image upload error:', err);
-    } finally {
-        setUploadingImage(false);
-    }
-  };
-
-  const handleProjectImageDelete = async () => {
-    if (!editingProject) {
-        setUploadError('No project selected.');
-        return;
-    }
-    if (!window.confirm("Are you sure you want to delete this project image?")) {
-        return;
-    }
-    setUploadingImage(true);
-    setUploadError('');
-    try {
-        await deleteProjectImage(editingProject.id);
-        setTempProjectImageUrl(''); // Clear temp image
-        addOrUpdateProjectState({ ...editingProject, image_url: null }); // Update store
-        alert('Project image deleted successfully!');
-    } catch (err) {
-        setUploadError(err.response?.data?.detail || 'Failed to delete image.');
-        console.error('Project image delete error:', err);
-    } finally {
-        setUploadingImage(false);
-    }
-  };
-
-
-  if (isLoading) return <p>Loading projects...</p>;
+  if (isLoading || localLoading) return <p>Loading projects...</p>;
   if (error && !userProfile) return <p className="text-red-500">Error: {error}</p>;
-  if (!userProfile) return <p>No user profile data available.</p>;
+  if (!userProfile) return <p>No user profile data available. Please log in.</p>;
 
   return (
     <div className="container mx-auto p-4 max-w-4xl bg-white shadow-md rounded-lg">
@@ -173,30 +151,11 @@ function ProjectSettingsPage() {
         <h2 className="text-xl font-medium mb-4">{editingProject ? 'Edit Project' : 'New Project'}</h2>
 
         <div className="mb-4 flex flex-col items-center">
-            <div className="relative w-40 h-40 border-2 border-gray-300 flex items-center justify-center bg-gray-200 text-gray-500 overflow-hidden">
-            {tempProjectImageUrl ? (
-                  <img src="/blue.png" alt="blue" className="w-full h-full object-cover" />
-            ) : (
-                  <img src="/blue.png" alt="blue" className="w-full h-full object-cover" />
-            )}
-            </div>
-            <p className="text-gray-500 text-sm mt-2">Image must be PNG or JPEG - max 2MB</p>
-            <div className="mt-4 flex space-x-2">
-            <label htmlFor="project-image-upload" className={`bg-blue-500 text-white px-4 py-2 rounded-md cursor-pointer text-sm transition duration-300 ${!editingProject ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600'}`}>
-                {uploadingImage ? 'Uploading...' : 'Upload Image'}
-                <input id="project-image-upload" type="file" className="hidden" accept="image/*" onChange={handleProjectImageUpload} disabled={uploadingImage || !editingProject} />
-            </label>
-            {tempProjectImageUrl && (
-                <button
-                    onClick={handleProjectImageDelete}
-                    className={`bg-red-500 text-white px-4 py-2 rounded-md text-sm transition duration-300 ${!editingProject ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-600'}`}
-                    disabled={uploadingImage || !editingProject}
-                >
-                    Delete Image
-                </button>
-            )}
-            </div>
-            {uploadError && <p className="text-red-500 text-sm mt-2">{uploadError}</p>}
+          <div className="relative w-40 h-40 border-2 border-gray-300 flex items-center justify-center bg-gray-200 text-gray-500 overflow-hidden">
+            {/* Always display the hardcoded image */}
+            <img src={HARDCODED_IMAGE_URL} alt="Project Preview" className="w-full h-full object-cover" />
+          </div>
+          {/* Removed image upload/delete buttons and error display */}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -275,11 +234,8 @@ function ProjectSettingsPage() {
           {projects.map((project) => (
             <div key={project.id} className="border border-gray-200 rounded-md p-4 flex items-start space-x-4">
               <div className="flex-shrink-0 w-24 h-24 bg-gray-200 rounded-md flex items-center justify-center overflow-hidden">
-                {project.image_url ? (
-                  <img src="/blue.png" alt={project.name} className="w-full h-full object-cover" />
-                ) : (
-                  <svg className="w-12 h-12 text-gray-500" fill="currentColor" viewBox="0 0 24 24"><path d="M4 16h16V7H4zm-2 5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h20a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2z"></path></svg>
-                )}
+                {/* Always display the hardcoded image */}
+                <img src={HARDCODED_IMAGE_URL} alt={project.name} className="w-full h-full object-cover" />
               </div>
               <div className="flex-grow">
                 <h3 className="text-lg font-bold">{project.name}</h3>

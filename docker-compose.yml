@@ -26,12 +26,11 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: fast_api_backend
     expose:
       - "8000"
     environment:
       - PYTHONUNBUFFERED=1
-      - DATABASE_URL=postgresql://postgres:12344321@postgres_db:5432/user_profile_db
+      - DATABASE_URL=postgresql://postgres:12344321@db:5432/user_profile_db
     depends_on:
       - db
     networks:
@@ -39,7 +38,6 @@ services:
 
   db:
     image: postgres:15
-    container_name: postgres_db
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=12344321

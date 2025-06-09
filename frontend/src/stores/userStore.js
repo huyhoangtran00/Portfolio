@@ -19,37 +19,36 @@ const useUserStore = create((set) => ({
     }
   },
 
-  // Phương thức để cập nhật profile cục bộ sau khi chỉnh sửa
   updateUserProfileState: (updatedProfile) => {
     set((state) => ({
       userProfile: { ...state.userProfile, ...updatedProfile },
     }));
   },
 
-  // Phương thức để thêm/cập nhật project cục bộ
+  // Add this new method to set the entire projects array
+  setProjects: (newProjects) => {
+    set({ projects: newProjects });
+  },
+
   addOrUpdateProjectState: (newProject) => {
     set((state) => {
       const existingProjectIndex = state.projects.findIndex(p => p.id === newProject.id);
       if (existingProjectIndex > -1) {
-        // Cập nhật project hiện có
         const updatedProjects = [...state.projects];
         updatedProjects[existingProjectIndex] = newProject;
         return { projects: updatedProjects };
       } else {
-        // Thêm project mới
         return { projects: [...state.projects, newProject] };
       }
     });
   },
 
-  // Phương thức để xóa project cục bộ
   deleteProjectState: (projectId) => {
     set((state) => ({
       projects: state.projects.filter(p => p.id !== projectId),
     }));
   },
 
-  // Clear state khi logout
   clearUserState: () => set({ userProfile: null, projects: [], isLoading: false, error: null }),
 }));
 

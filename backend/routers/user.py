@@ -128,6 +128,24 @@ async def delete_project(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found or not owned by user")
     return
 
+@router.get("/projects/me", response_model=List[ProjectResponse])
+async def get_my_projects(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Retrieve all projects owned by the currently authenticated user.
+    """
+    projects = crud_project.get_user_projects(db, current_user.id)
+    print(projects)
+    if not projects:
+        # It's generally fine to return an empty list if no projects exist,
+        # rather than a 404, as the request was successful.
+        return []
+    return projects
+
+
+
 @router.get("/profile", response_model=UserResponse)
 async def get_user_profile(
     current_user: User = Depends(get_current_user)
