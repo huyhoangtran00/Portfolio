@@ -10,7 +10,7 @@ services:
       backend:
         condition: service_healthy
     networks:
-      - task-network
+      - app-network
     logging:
       driver: "json-file"
       options:
@@ -26,7 +26,7 @@ services:
       backend:
         condition: service_healthy
     networks:
-      - task-network
+      - app-network
     logging:
       driver: "json-file"
       options:
@@ -48,13 +48,13 @@ services:
       db:
         condition: service_healthy
     networks:
-      - task-network
+      - app-network
     environment:
       - DB_HOST=db
       - DB_PORT=5432
       - DB_USER=postgres
       - DB_PASSWORD=12344321
-      - DB_NAME=task_schedule
+      - DB_NAME=user_profile_db
       - NODE_ENV=production
     logging:
       driver: "json-file"
@@ -74,13 +74,13 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=12344321
-      - POSTGRES_DB=task_schedule
+      - POSTGRES_DB=user_profile_db
     expose:
       - "5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - task-network
+      - app-network
     logging:
       driver: "json-file"
       options:
@@ -95,7 +95,7 @@ services:
     restart: unless-stopped
 
 networks:
-  task-network:
+  app-network:
     driver: bridge
 
 volumes:
