@@ -6,6 +6,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
@@ -16,4 +17,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Run migrations and start the application
-CMD alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000 
+CMD alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000
